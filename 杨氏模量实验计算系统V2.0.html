@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>杨氏模量计算器 V2.7 最终定稿</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{background:#f7f8fa;font-family:"Microsoft YaHei",sans-serif;padding:15px;}
+        .card{background:#fff;border-radius:12px;padding:18px;margin-bottom:15px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+        h2{text-align:center;color:#222;margin-bottom:15px;font-size:20px;}
+        label{display:block;margin-bottom:6px;font-size:15px;color:#333;font-weight:500;}
+        input{width:100%;padding:11px 14px;border:1px solid #e1e5e9;border-radius:8px;font-size:16px;margin-bottom:10px;}
+        button{width:100%;padding:16px;background:#007bff;color:#fff;border:none;border-radius:10px;font-size:17px;font-weight:bold;margin:10px 0;cursor:pointer;}
+        #result{line-height:2.1;color:#222;font-weight:bold;padding:15px;background:#f8f9fa;border-radius:8px;white-space:pre-wrap;min-height:100px;}
+        canvas{width:100%;height:380px;background:#fff;border-radius:10px;display:block;margin-top:10px;}
+    </style>
+</head>
+<body>
+    <h2>“光杠杆法” 杨氏模量测量实验计算系统</h2>
+
+    <div class="card">
+        <label>金属丝原长 L (mm) → 自动取整</label>
+        <input id="L" value="737">
+
+        <label>光杠杆常数 H (mm)</label>
+        <input id="H" value="688">
+
+        <label>镜尺距 D (mm) → 自动取整</label>
+        <input id="D" value="58">
+
+        <label>重力加速度 g (m/s²)</label>
+        <input id="g" value="9.8" readonly>
+    </div>
+
+    <div class="card">
+        <label>金属丝直径零点读数 d0 (mm)</label>
+        <input id="d0" value="0.00">
+
+        <label>直径测量1 (mm)</label>
+        <input id="d1" value="0.68">
+        <label>直径测量2 (mm)</label>
+        <input id="d2" value="0.69">
+        <label>直径测量3 (mm)</label>
+        <input id="d3" value="0.68">
+        <label>直径测量4 (mm)</label>
+        <input id="d4" value="0.67">
+        <label>直径测量5 (mm)</label>
+        <input id="d5" value="0.68">
+    </div>
+
+    <div class="card">
+        <label>砝码质量 m (kg)，逗号分隔</label>
+        <input id="m_list" value="3,4,5,6,7,8,9,10">
+
+        <label>加砝码刻度读数 (mm)，逗号分隔</label>
+        <input id="add_list" value="17.2,19.8,22.4,24.7,26.9,29.4,31.5,34.1">
+
+        <label>减砝码刻度读数 (mm)，逗号分隔</label>
+        <input id="sub_list" value="17.0,19.5,22.1,24.8,27.1,29.1,31.2,33.9">
+    </div>
+
+    <button onclick="calculate()">✅ 计算杨氏模量 + 绘制标准曲线</button>
+
+    <div id="result"></div>
+    <canvas id="chart"></canvas>
+
+<script>
+function calculate() {
+    document.getElementById('result').innerText = "";
+    const canvas = document.getElementById('chart');
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    try {
+        const L = Math.round(Number(document.getElementById('L').value));
+        const H = Number(document.getElementById('H').value);
+        const D = Math.round(Number(document.getElementById('D').value));
+        const g = Number(document.getElementById('g').value);
+        const pi = 3.14159265;
+
+        const d0 = Number(document.getElementById('d0').value);
+        const d_arr = [
+            Number(document.getElementById('d1').value),
+            Number(document.getElementById('d2').value),
+            Number(document.getElementById('d3').value),
+            Number(document.getElementById('d4').value),
+            Number(document.getElementById('d5').value)
+        ];
+        const d_raw = d_arr.reduce((a,b)=>a+b,0) / d_arr.length;
+        const d_correct = d_raw - d0;
+        const d = Math.round(d_correct * 100) / 100;
+
+        const m = document.getElementById('m_list').value.split(',').map(Number).filter(n=>!isNaN(n));
+        const add = document.getElementById('add_list').value.split(',').map(Number).filter(n=>!isNaN(n));
+        const sub = document.getElementById('sub_list').value.split(',').map(Number).filter(n=>!isNaN(n));
+
+        if(m.length!==add.length || add.length!==sub.length || m.length<2){
+            throw new Error("数据长度不一致！");
+        }
+
+        const x_mean = add.map((_,i) => (add[i]+sub[i])/2);
+        const F = m.map(mi => mi * g);
+
+        const n = F.length;
+        let sumF=0, sumX=0, sumFX=0, sumF2=0;
+        for(let i=0; i<n; i++){
+            sumF += F[i];
+            sumX += x_mean[i];
+            sumFX += F[i] * x_mean[i];
+            sumF2 += F[i]**2;
+        }
+        const k = (n*sumFX - sumF*sumX) / (n*sumF2 - sumF**2);
+        const intercept = (sumX/n) - k*(sumF/n);
+
+        const E_nmm2 = (8 * L * H) / (pi * d**2 * D * k);
+        const E_gpa = E_nmm2 / 1000;
+
+        let res = `
+✅ 金属丝原长 L：${L} mm（已取整）
+✅ 镜尺距 D：${D} mm（已取整）
+✅ 直径零点读数 d0：${d0.toFixed(2)} mm
+✅ 直径测量平均值：${d_raw.toFixed(3)} mm
+✅ 修正后直径 d：${d.toFixed(3)} mm
+----------------------------------
+✅ 最小二乘法斜率 k：${k.toFixed(6)} mm/N
+✅ 截距 b：${intercept.toFixed(3)} mm
+✅ 杨氏模量 E：${E_nmm2.toFixed(2)} N/mm² ≈ ${E_gpa.toFixed(2)} GPa
+        `;
+        document.getElementById('result').innerText = res;
+
+        // ====================== 绘图：坐标完全对齐 ======================
+        const W = canvas.width;
+        const H_canvas = canvas.height;
+        const pad = 80;
+        const axisW = W - 2*pad;
+        const axisH = H_canvas - 2*pad;
+
+        // 固定坐标轴（规整刻度：0 10 20...）
+        const F_axis_min = 0;
+        const F_axis_max = 100;
+        const X_axis_min = 10;
+        const X_axis_max = 40;
+
+        // 坐标映射（点位置与刻度严格对应）
+        function fx(f) { return pad + (f - F_axis_min) / (F_axis_max - F_axis_min) * axisW; }
+        function fy(x) { return H_canvas - pad - (x - X_axis_min) / (X_axis_max - X_axis_min) * axisH; }
+
+        // 网格
+        ctx.strokeStyle = '#eee';
+        ctx.lineWidth = 1;
+        for(let i=0; i<=6; i++){
+            let x = pad + axisW/6*i;
+            ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, H_canvas-pad); ctx.stroke();
+        }
+        for(let i=0; i<=6; i++){
+            let y = pad + axisH/6*i;
+            ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(W-pad, y); ctx.stroke();
+        }
+
+        // 坐标轴
+        ctx.strokeStyle = '#333'; ctx.lineWidth=2;
+        ctx.beginPath();
+        ctx.moveTo(pad, H_canvas-pad); ctx.lineTo(W-pad, H_canvas-pad);
+        ctx.moveTo(pad, pad); ctx.lineTo(pad, H_canvas-pad);
+        ctx.stroke();
+
+        // ====================== 规整刻度 ======================
+        ctx.fillStyle = '#333';
+        ctx.font = '14px Arial';
+
+        // X轴：0 10 20 ... 100
+        for(let v=F_axis_min; v<=F_axis_max; v+=10){
+            let x = fx(v);
+            ctx.fillText(v, x-8, H_canvas-pad+22);
+        }
+
+        // Y轴：10 15 20 ... 40
+        for(let v=X_axis_min; v<=X_axis_max; v+=5){
+            let y = fy(v);
+            ctx.fillText(v, pad-40, y+5);
+        }
+
+        // ====================== 实验点 + 坐标标注 ======================
+        ctx.fillStyle = '#007bff';
+        F.forEach((fi,i)=>{
+            let x = fx(fi);
+            let y = fy(x_mean[i]);
+            ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#333';
+            ctx.font = '11px Arial';
+            ctx.fillText(`(${fi.toFixed(1)}, ${x_mean[i].toFixed(1)})`, x+8, y-8);
+            ctx.fillStyle = '#007bff';
+        });
+
+        // ====================== 拟合直线 ======================
+        ctx.strokeStyle = '#dc3545'; ctx.lineWidth=2;
+        ctx.beginPath();
+        ctx.moveTo(fx(F_axis_min), fy(k*F_axis_min + intercept));
+        ctx.lineTo(fx(F_axis_max), fy(k*F_axis_max + intercept));
+        ctx.stroke();
+
+        // ====================== 图上直接标注拟合方程 ======================
+        ctx.fillStyle = '#dc3545';
+        ctx.font = 'bold 15px Microsoft YaHei';
+        ctx.fillText(`拟合方程：x = ${k.toFixed(4)}F + ${intercept.toFixed(3)}`, pad + 20, pad + 60);
+
+        // 标签
+        ctx.fillStyle = '#222'; ctx.font='15px Microsoft YaHei';
+        ctx.fillText('受力 F (N)', W/2-25, H_canvas-25);
+        ctx.save();
+        ctx.translate(30, H_canvas/2); ctx.rotate(-Math.PI/2);
+        ctx.fillText('刻度读数 x (mm)',0,0);
+        ctx.restore();
+
+        // 图例
+        ctx.fillStyle='#007bff'; ctx.fillRect(pad+15,pad+15,10,10);
+        ctx.fillStyle='#333'; ctx.fillText('实验数据',pad+32,pad+23);
+        ctx.strokeStyle='#dc3545'; ctx.lineWidth=2;
+        ctx.beginPath(); ctx.moveTo(pad+15,pad+40); ctx.lineTo(pad+25,pad+40); ctx.stroke();
+        ctx.fillText('最小二乘拟合',pad+32,pad+42);
+
+        ctx.font='bold 17px Microsoft YaHei';
+        ctx.fillStyle = '#222';
+        ctx.fillText('F - x 关系曲线', W/2-70, 30);
+
+    } catch(e) {
+        document.getElementById('result').innerText = "❌ 错误："+e.message;
+    }
+}
+</script>
+</body>
+</html>
