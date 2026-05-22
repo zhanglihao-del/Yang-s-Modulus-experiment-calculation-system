@@ -94,6 +94,20 @@ function calculate() {
         const d_correct = d_raw - d0;
         const d = Math.round(d_correct * 1000) / 1000;
 
+        // 直径A类不确定度
+        const n_d = d_arr.length;
+        let sum_d2 = 0;
+        d_arr.forEach(val => sum_d2 += (val - d_raw)**2);
+        const s_d = Math.sqrt(sum_d2 / (n_d - 1));
+        const uA_d = s_d / Math.sqrt(n_d);
+
+        // 直径B类不确定度（螺旋测微器仪器误差0.004mm）
+        const delta_ins_d = 0.004;
+        const uB_d = delta_ins_d / Math.sqrt(3);
+
+        // 直径合成不确定度
+        const u_d = Math.sqrt(uA_d**2 + uB_d**2);
+
         const m = document.getElementById('m_list').value.split(',').map(Number).filter(n=>!isNaN(n));
         const add = document.getElementById('add_list').value.split(',').map(Number).filter(n=>!isNaN(n));
         const sub = document.getElementById('sub_list').value.split(',').map(Number).filter(n=>!isNaN(n));
@@ -116,19 +130,59 @@ function calculate() {
         const k = (n*sumFX - sumF*sumX) / (n*sumF2 - sumF**2);
         const intercept = (sumX/n) - k*(sumF/n);
 
+        // 斜率不确定度
+        let S = 0;
+        for(let i=0; i<n; i++){
+            const x_pred = k*F[i] + intercept;
+            S += (x_mean[i] - x_pred)**2;
+        }
+        const s_x = Math.sqrt(S/(n-2));
+        const meanF = sumF/n;
+        let sumF_dev2 = 0;
+        F.forEach(f => sumF_dev2 += (f - meanF)**2);
+        const u_k = s_x / Math.sqrt(sumF_dev2);
+
+        // 杨氏模量计算
         const E_nmm2 = (8 * L * H) / (pi * d**2 * D * k);
         const E_gpa = E_nmm2 / 1000;
 
+        // 杨氏模量相对不确定度 + 合成不确定度
+        const ur_L = 0.5 / L;
+        const ur_H = 0.5 / H;
+        const ur_D = 0.5 / D;
+        const ur_d = u_d / d;
+        const ur_k = u_k / k;
+        const ur_E = Math.sqrt(ur_L**2 + ur_H**2 + ur_D**2 + (2*ur_d)**2 + ur_k**2);
+        const u_E = E_gpa * ur_E;
+        const u_E_nmm2 = E_nmm2 * ur_E;
+
+        // 扩展不确定度 k=2
+        const U_E = (2 * u_E).toFixed(2);
+        const U_E_nmm2 = (2 * u_E_nmm2).toFixed(2);
+
         let res = `
+-----（一）基础几何参数模块-------
 ✅ 金属丝原长 L：${L} mm（已取整）
 ✅ 镜尺距 D：${D} mm（已取整）
 ✅ 直径零点读数 d0：${d0.toFixed(3)} mm
 ✅ 直径测量平均值：${d_raw.toFixed(3)} mm
 ✅ 修正后直径 d：${d.toFixed(3)} mm
-----------------------------------
+-----（二）直径不确定度模块--------
+📏 直径A类不确定度 uA(d)：${uA_d.toFixed(4)} mm
+📏 直径B类不确定度 uB(d)：${uB_d.toFixed(4)} mm
+📏 直径合成不确定度 u(d)：${u_d.toFixed(4)} mm
+-----（三）拟合参数模块-------------
 ✅ 最小二乘法斜率 k：${k.toFixed(6)} mm/N
+✅ 斜率不确定度 u(k)：${u_k.toFixed(6)} mm/N
 ✅ 截距 b：${intercept.toFixed(3)} mm
+-----（四）杨氏模量与不确定度模块----
 ✅ 杨氏模量 E：${E_nmm2.toFixed(2)} N/mm² ≈ ${E_gpa.toFixed(2)} GPa
+✅ 合成标准不确定度 u(E)：${u_E.toFixed(2)} GPa
+✅ 扩展不确定度 U（k=2）：${U_E} GPa
+-----（五）最终结果模块------------
+🎯 最终实验结果：
+   E = ${E_gpa.toFixed(2)} ± ${U_E} GPa
+   E = ${E_nmm2.toFixed(2)} ± ${U_E_nmm2} N/mm²
         `;
         document.getElementById('result').innerText = res;
 
