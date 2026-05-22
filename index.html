@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>杨氏模量计算器 V2.7 最终定稿</title>
+    <title>杨氏模量实验计算器V3.0 </title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;}
         body{background:#f7f8fa;font-family:"Microsoft YaHei",sans-serif;padding:15px;}
@@ -181,8 +181,8 @@ function calculate() {
 ✅ 扩展不确定度 U（k=2）：${U_E} GPa
 -----（五）最终结果模块------------
 🎯 最终实验结果：
-   E = ${E_gpa.toFixed(2)} ± ${U_E} GPa
-   E = ${E_nmm2.toFixed(2)} ± ${U_E_nmm2} N/mm²
+   E = （${E_gpa.toFixed(2)} ± ${U_E}） GPa
+   E = （${E_nmm2.toFixed(2)} ± ${U_E_nmm2}） N/mm²
         `;
         document.getElementById('result').innerText = res;
 
