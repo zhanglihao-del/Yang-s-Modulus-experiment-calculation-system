@@ -35,18 +35,18 @@
 
     <div class="card">
         <label>金属丝直径零点读数 d0 (mm)</label>
-        <input id="d0" value="0.00">
+        <input id="d0" value="0.000">
 
         <label>直径测量1 (mm)</label>
-        <input id="d1" value="0.68">
+        <input id="d1" value="0.680">
         <label>直径测量2 (mm)</label>
-        <input id="d2" value="0.69">
+        <input id="d2" value="0.690">
         <label>直径测量3 (mm)</label>
-        <input id="d3" value="0.68">
+        <input id="d3" value="0.680">
         <label>直径测量4 (mm)</label>
-        <input id="d4" value="0.67">
+        <input id="d4" value="0.670">
         <label>直径测量5 (mm)</label>
-        <input id="d5" value="0.68">
+        <input id="d5" value="0.680">
     </div>
 
     <div class="card">
@@ -92,7 +92,7 @@ function calculate() {
         ];
         const d_raw = d_arr.reduce((a,b)=>a+b,0) / d_arr.length;
         const d_correct = d_raw - d0;
-        const d = Math.round(d_correct * 100) / 100;
+        const d = Math.round(d_correct * 1000) / 1000;
 
         const m = document.getElementById('m_list').value.split(',').map(Number).filter(n=>!isNaN(n));
         const add = document.getElementById('add_list').value.split(',').map(Number).filter(n=>!isNaN(n));
@@ -122,7 +122,7 @@ function calculate() {
         let res = `
 ✅ 金属丝原长 L：${L} mm（已取整）
 ✅ 镜尺距 D：${D} mm（已取整）
-✅ 直径零点读数 d0：${d0.toFixed(2)} mm
+✅ 直径零点读数 d0：${d0.toFixed(3)} mm
 ✅ 直径测量平均值：${d_raw.toFixed(3)} mm
 ✅ 修正后直径 d：${d.toFixed(3)} mm
 ----------------------------------
