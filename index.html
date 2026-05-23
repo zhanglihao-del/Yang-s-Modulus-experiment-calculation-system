@@ -20,14 +20,14 @@
     <h2>“光杠杆法” 杨氏模量测量实验计算系统</h2>
 
     <div class="card">
-        <label>金属丝原长 L (mm) → 自动取整</label>
-        <input id="L" value="737">
+        <label>金属丝原长 L (mm)</label>
+        <input id="L" value="737.3">
 
-        <label>光杠杆常数 H (mm)</label>
-        <input id="H" value="688">
+        <label>镜尺距 H (mm)</label>
+        <input id="H" value="688.0">
 
-        <label>镜尺距 D (mm) → 自动取整</label>
-        <input id="D" value="58">
+        <label>光杠杆 D (mm)</label>
+        <input id="D" value="58.00">
 
         <label>重力加速度 g (m/s²)</label>
         <input id="g" value="9.8" readonly>
@@ -50,8 +50,8 @@
     </div>
 
     <div class="card">
-        <label>砝码质量 m (kg)，逗号分隔</label>
-        <input id="m_list" value="3,4,5,6,7,8,9,10">
+        <label>砝码质量 m (kg)，逗号分隔（保留三位小数）</label>
+        <input id="m_list" value="3.000,4.000,5.000,6.000,7.000,8.000,9.000,10.000">
 
         <label>加砝码刻度读数 (mm)，逗号分隔</label>
         <input id="add_list" value="17.2,19.8,22.4,24.7,26.9,29.4,31.5,34.1">
@@ -76,9 +76,9 @@ function calculate() {
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
     try {
-        const L = Math.round(Number(document.getElementById('L').value));
+        const L = Number(document.getElementById('L').value);
         const H = Number(document.getElementById('H').value);
-        const D = Math.round(Number(document.getElementById('D').value));
+        const D = Number(document.getElementById('D').value);
         const g = Number(document.getElementById('g').value);
         const pi = 3.14159265;
 
