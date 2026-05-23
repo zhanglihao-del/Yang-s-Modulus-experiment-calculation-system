@@ -141,15 +141,37 @@ function calculate() {
         let sumF_dev2 = 0;
         F.forEach(f => sumF_dev2 += (f - meanF)**2);
         const u_k = s_x / Math.sqrt(sumF_dev2);
-
+   
         // 杨氏模量计算
         const E_nmm2 = (8 * L * H) / (pi * d**2 * D * k);
         const E_gpa = E_nmm2 / 1000;
 
+
+        //L、H、D：。单次测量，A类不确定度 = 0
+        const uA_L = 0;
+        const uA_H = 0;
+        const uA_D = 0;
+
+        //B类不确定度
+        const delta_LH = 0.5;
+        const uB_L = delta_LH / Math.sqrt(3);
+        const uB_H = delta_LH / Math.sqrt(3);
+
+        const delta_D = 0.02;
+        const uB_D = delta_D / Math.sqrt(3);
+
+        //合成不确定度 u = √(uA²+uB²)
+        const u_L = Math.sqrt(uA_L**2 + uB_L**2);
+        const u_H = Math.sqrt(uA_H**2 + uB_H**2);
+        const u_D = Math.sqrt(uA_D**2 + uB_D**2);
+
+        //相对不确定度
+        const ur_L = u_L / L;
+        const ur_H = u_H / H;
+        const ur_D = u_D / D;
+
         // 杨氏模量相对不确定度 + 合成不确定度
-        const ur_L = 0.5 / L;
-        const ur_H = 0.5 / H;
-        const ur_D = 0.5 / D;
+       
         const ur_d = u_d / d;
         const ur_k = u_k / k;
         const ur_E = Math.sqrt(ur_L**2 + ur_H**2 + ur_D**2 + (2*ur_d)**2 + ur_k**2);
@@ -162,8 +184,9 @@ function calculate() {
 
         let res = `
 -----（一）基础几何参数模块-------
-✅ 金属丝原长 L：${L} mm（已取整）
-✅ 镜尺距 D：${D} mm（已取整）
+✅ 金属丝原长 L：${L.toFixed(1)} mm
+✅ 镜尺距 H：${H.toFixed(1)} mm
+✅ 光杠杆常数 D：${D.toFixed(2)} mm
 ✅ 直径零点读数 d0：${d0.toFixed(3)} mm
 ✅ 直径测量平均值：${d_raw.toFixed(3)} mm
 ✅ 修正后直径 d：${d.toFixed(3)} mm
@@ -260,7 +283,7 @@ function calculate() {
         // ====================== 图上直接标注拟合方程 ======================
         ctx.fillStyle = '#dc3545';
         ctx.font = 'bold 15px Microsoft YaHei';
-        ctx.fillText(`拟合方程：x = ${k.toFixed(4)}F + ${intercept.toFixed(3)}`, pad + 20, pad + 60);
+        ctx.fillText(`拟合方程：x = ${k.toFixed(2)}F + ${intercept.toFixed(2)}`, pad + 20, pad + 60);
 
         // 标签
         ctx.fillStyle = '#222'; ctx.font='15px Microsoft YaHei';
